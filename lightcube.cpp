@@ -4,14 +4,14 @@ using namespace std;
 
 void rotate(GLuint locate);
 
-//GLuint vaoID,vboID[2],eboID;
-GLuint vaoID,vboID,eboID;
+GLuint vaoID,vboID[2],eboID;
 GLuint program;
 
 GLfloat pit,yaw,scalar=1;
 glm::vec3 cubeTran;
 
 GLfloat size=10;
+GLfloat normalVector = 1.0f / sqrt(3.0f);
 
 GLfloat vertexarray[]={size,size,-size,
 					   size,-size,-size,
@@ -23,16 +23,16 @@ GLfloat vertexarray[]={size,size,-size,
                        -size,size,size
                        };
 
-/*GLfloat colorarray[]={1.0f,0.0f,0.0f,1.0f,
-	              	  0.0f,1.0f,0.0f,1.0f,
-		      		  1.0f,1.0f,0.0f,1.0f,
-		      		  0.0f,0.0f,1.0f,1.0f,
-					  0.5f,1.0f,0.5,1.0f,
-					  1.0f,1.0f,1.0f,1.0f,
-					  0.0f,1.0f,1.0f,1.0f,
-					  1.0f,0.0f,1.0f,1.0f
-	              			};
-	*/										
+GLfloat normalsarray[] = {normalVector,normalVector,-normalVector,
+                       normalVector,-normalVector,-normalVector,
+                       -normalVector,-normalVector,-normalVector,
+                       -normalVector,normalVector,-normalVector,
+                       normalVector,normalVector,normalVector,
+                       normalVector,-normalVector,normalVector,
+                       -normalVector,-normalVector,normalVector,
+                       -normalVector,normalVector,normalVector
+};
+					   									
  GLubyte elems[]={0,1,2,3,
 				  7,4,5,6,
     	          7,3,0,4,
@@ -42,46 +42,26 @@ GLfloat vertexarray[]={size,size,-size,
                  };
 
 void init(){
-
-   GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-   GLfloat mat_shininess[] = { 50.0 };
-   GLfloat light_position[] = { 1.0, 1.0, 1.0, 0.0 };
-   glClearColor (0.0, 0.0, 0.0, 0.0);
-   glShadeModel (GL_SMOOTH);
-
-   glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-   glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-   glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_COLOR_MATERIAL);
 	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT1);
 	glEnable(GL_NORMALIZE);
 	
 	glViewport(0, 0, 600, 600);
 	
-	
-	/*GLfloat la[] = {1.0, 1.0, 1.0, 1.0};
-	GLfloat ld[] = {1.0, 1.0, 1.0, 1.0};
-	GLfloat ls[] = {1.0, 1.0, 1.0, 1.0};
-	GLfloat lp[] = { -2.0, 2.0, 2.0, 0.0};
-	glLightfv(GL_LIGHT0, GL_AMBIENT, la);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, ld);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, ls);
-	glLightfv(GL_LIGHT0, GL_POSITION, lp);*/
-	
-	glEnable(GL_LIGHT0);
-	
 	glGenVertexArrays(1,&vaoID);
 	glBindVertexArray(vaoID);
 	
-	glGenBuffers(1, &vboID);
-	glBindBuffer(GL_ARRAY_BUFFER,vboID);
+	glGenBuffers(2, vboID);
+	glBindBuffer(GL_ARRAY_BUFFER,vboID[0]);
 	glBufferData(GL_ARRAY_BUFFER,sizeof(vertexarray),vertexarray,GL_STATIC_DRAW);
 	glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void*)0);
 	
-	/*glBindBuffer(GL_ARRAY_BUFFER, vboID[1]);
-	glBufferData(GL_ARRAY_BUFFER,sizeof(colorarray),colorarray,GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);*/
+	glBindBuffer(GL_ARRAY_BUFFER, vboID[1]);
+	glBufferData(GL_ARRAY_BUFFER,sizeof(normalsarray),normalsarray,GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 	
 	glGenBuffers(1,&eboID);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,eboID);
@@ -96,13 +76,12 @@ void init(){
   program=initShaders(shaders);
   
   glEnableVertexAttribArray(0);
-  //glEnableVertexAttribArray(1);
+  glEnableVertexAttribArray(1);
   
 }
 
 
 void display(SDL_Window* screen){
-	//glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	
 	glm::mat4 trans;
@@ -112,10 +91,36 @@ void display(SDL_Window* screen){
 	trans=glm::rotate(trans,yaw,glm::vec3(0,1,0));//rotate the cube arround the y axis
 	trans=glm::scale(trans,glm::vec3(scalar));//scaling the cube
     
+	GLfloat ambient[] = {0.4f, 0.4f, 0.4f, 1.0f};
+	GLfloat light1_dir[] = {20.0f, 5.0f, 0.0f};
+	GLfloat light1_color[] = {1.0f, 0.0f, 0.0f};
+	GLfloat light2_dir[] = {-20.0f, -5.0f, 0.0f};
+	GLfloat light2_color[] = {0.0f, 0.0f, 1.0f};
+	
 	GLint tempLoc = glGetUniformLocation(program,"modelMatrix");//Matrix that handle the transformations
 	glUniformMatrix4fv(tempLoc,1,GL_FALSE,&trans[0][0]);
 	
-	//glDrawElements(GL_QUADS,24,GL_UNSIGNED_BYTE,NULL);
+	tempLoc = glGetUniformLocation(program,"Ambient");
+	glUniform4fv(tempLoc,1,ambient);
+
+	tempLoc = glGetUniformLocation(program,"LightColor1");
+	glUniform3fv(tempLoc,1,light1_color);
+
+	tempLoc = glGetUniformLocation(program,"LightDirection1");
+	glUniform3fv(tempLoc,1,light1_dir);
+  
+	tempLoc = glGetUniformLocation(program,"HalfVector1");
+	glUniform3fv(tempLoc,1,light1_dir);
+
+	tempLoc = glGetUniformLocation(program,"LightColor2");
+	glUniform3fv(tempLoc,1,light2_color);
+
+	tempLoc = glGetUniformLocation(program,"LightDirection2");
+	glUniform3fv(tempLoc,1,light2_dir);
+  
+	tempLoc = glGetUniformLocation(program,"HalfVector2");
+	glUniform3fv(tempLoc,1,light2_dir);
+	
 	glDrawElements(GL_QUADS,24,GL_UNSIGNED_BYTE,NULL);
 	glFlush();
 	SDL_GL_SwapWindow(screen);
@@ -160,7 +165,7 @@ int main(int argc, char **argv){
 
 	//create window
 	window = SDL_CreateWindow(
-		"Example", //Window title
+		"lightcube", //Window title
 		SDL_WINDOWPOS_UNDEFINED, //initial x position
 		SDL_WINDOWPOS_UNDEFINED, //initial y position
 		500,							//width, in pixels
